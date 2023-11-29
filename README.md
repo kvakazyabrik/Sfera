@@ -1,5 +1,5 @@
 # Spectrasynthesizer
-This is the code for arduino to control special equipments
+This is the code for arduino to control special equipment
 (sphere). This sphere contains 32 diods (different wavelengths).
 The arduino can change the current for any diod in specific range.
 Commands are sended by serial port.
