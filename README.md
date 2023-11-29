@@ -1,3 +1,4 @@
+![Arduino](https://img.shields.io/badge/-Arduino-00979D?style=for-the-badge&logo=Arduino&logoColor=white)
 # Spectrasynthesizer
 This is the code for arduino to control special equipment
 (sphere). This sphere contains 32 diods (different wavelengths).
