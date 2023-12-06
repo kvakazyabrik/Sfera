@@ -46,15 +46,23 @@ char SerialData = 0;  //  шапка сом - порта
 char SerialBuffer[16];
 int BufferIndex = 0;
 volatile bool endOfTransmission = false;
-
-char *ptr;
+char* ptr;
 unsigned long address_buf = 0;
 int address = 0;
-
 int flags = 0;
-
 unsigned long val = 0;
 
+// forward declaration
+void setup();
+void clear_after_end_of_transmission();
+setVoltage(uint16_t value, uint16_t address_pin);
+
+inline void clear_after_end_of_transmission() {
+  memset(SerialBuffer, 0, sizeof(SerialBuffer));                    // обнуление буфера
+  BufferIndex = 0;
+  endOfTransmission = 0;
+  address_buf = 0;
+};
 
 void setup() {
   SPI.begin();
@@ -107,15 +115,12 @@ void loop() {
 
       case 0x61:  // a
         if (isDigit(SerialBuffer[1]))
-          address_buf = strtoul((const char *)SerialBuffer + 1, &ptr, 10);  //Преобразование строки в значение типа unsigned long int
-                else {
+          address_buf = strtoul((const char*)SerialBuffer + 1, &ptr, 10);   //Преобразование строки в значение типа unsigned long int
+        else {
           Serial.write("invalid command");                        // ответ от контроллера
-memset(SerialBuffer, 0, sizeof(SerialBuffer));                    // обнуление буфера
-    BufferIndex = 0;
-    endOfTransmission = 0;
-    address_buf = 0;
-}
- switch (address_buf) {
+          clear_after_end_of_transmission();
+        }
+        switch (address_buf) {
           case 0x01:
             address = S23;
             break;
@@ -248,23 +253,17 @@ memset(SerialBuffer, 0, sizeof(SerialBuffer));                    // обнул�
         break;
       case 0x76:  // v
         if (isDigit(SerialBuffer[1]))
-          val = strtoul((const char *)SerialBuffer + 1, &ptr, 10);  //Преобразование строки в значение типа unsigned long int
-          else {
+          val = strtoul((const char*)SerialBuffer + 1, &ptr, 10);   //Преобразование строки в значение типа unsigned long int
+        else {
           Serial.write("invalid command");                        // ответ от контроллера
-memset(SerialBuffer, 0, sizeof(SerialBuffer));                    // обнуление буфера
-    BufferIndex = 0;
-    endOfTransmission = 0;
-    address_buf = 0;
-}
+          clear_after_end_of_transmission();
+        }
         break;
       case 0x66:  // f
         flags = 0;
         break;
     }
-    memset(SerialBuffer, 0, sizeof(SerialBuffer));
-    BufferIndex = 0;
-    endOfTransmission = 0;
-    address_buf = 0;
+    clear_after_end_of_transmission();
   }
 
   if (flags == 0) {
@@ -308,12 +307,11 @@ memset(SerialBuffer, 0, sizeof(SerialBuffer));                    // обнул�
   //  Выводим рассчитанные данные:                                //
   //Serial.println((String) "Объем " + varV + "л, скорость " + (varQ * 60.0f) + "л/м.");
 
-    if (varQ == 0) {     // Если расход = 0, те не раб, то:
+  if (varQ == 0) {     // Если расход = 0, те не раб, то:
     tone(freq, 1);  //включаем на 1000
 
     asm volatile("jmp 0x00"); // reset до состояния нормальной работы
+  } else {
+    noTone(freq);
   }
-   else {
- noTone (freq);
-        }
 }
