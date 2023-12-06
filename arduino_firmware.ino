@@ -3,44 +3,50 @@
 #include <string.h>
 #include <ctype.h>
 #include "SPI.h"
+#include "unordered_map"
 /*#define MCP4921_CS_PIN    29*/
 
 uint8_t pinSensor = 10;  // Определяем номер вывода Arduino, к которому подключён датчик расхода воды.
 int freq = 11;           // Объявляем динамик
 float varQ;              // Объявляем переменную для хранения рассчитанной скорости потока воды (л/с).
 float varV;              // Объявляем переменную для хранения рассчитанного объема воды (л).
-const int S1 = 22;       //  инициализация пинов на плате для светодиодов
-const int S2 = 23;
-const int S3 = 24;
-const int S4 = 25;
-const int S5 = 26;
-const int S6 = 27;
-const int S7 = 28;
-const int S8 = 29;
-const int S9 = 30;
-const int S10 = 31;
-const int S11 = 32;
-const int S12 = 33;
-const int S13 = 34;
-const int S14 = 35;
-const int S15 = 36;
-const int S16 = 37;
-const int S17 = 38;
-const int S18 = 39;
-const int S19 = 40;
-const int S20 = 41;
-const int S21 = 42;
-const int S22 = 43;
-const int S23 = 44;
-const int S24 = 45;
-const int S25 = 46;
-const int S26 = 47;
-const int S27 = 48;
-const int S28 = 49;
-const int S29 = 9;
-const int S30 = 8;
-const int S31 = 13;
-const int S32 = 53;
+
+//  инициализация пинов на плате для светодиодов
+unordered_map <int,unsigned long> pins;
+pins ={
+        {1,44},
+        {2,45},
+        {3,42},
+        {4,40},
+        {5,41},
+        {6,43},
+        {7,13},
+        {8,30},
+        {9,36},
+        {10,23},
+        {11,25},
+        {12,27},
+        {13,26},
+        {14,24},
+        {15,22},
+        {16,33},
+        {17,32},
+        {18,35},
+        {19,34},
+        {20,37},
+        {21,29},
+        {22,28},
+        {23,31},
+        {24,47},
+        {25,46},
+        {26,49},
+        {27,48},
+        {28,8},
+        {29,9},
+        {30,53},
+        {31,38},
+        {32,39}
+    };
 
 char SerialData = 0;  //  шапка сом - порта
 char SerialBuffer[16];
@@ -98,6 +104,7 @@ void setVoltage(uint16_t value, uint16_t address_pin) {
 }
 
 void loop() {
+start_of_loop:
   if (Serial.available() > 0) {  //   общение по com - порту
     SerialData = Serial.read();
     if (SerialData == '\n') {
@@ -117,148 +124,23 @@ void loop() {
         if (isDigit(SerialBuffer[1]))
           address_buf = strtoul((const char*)SerialBuffer + 1, &ptr, 10);   //Преобразование строки в значение типа unsigned long int
         else {
-          Serial.write("invalid command");                        // ответ от контроллера
+          Serial.write("invalid pin command");                        // ответ от контроллера
           clear_after_end_of_transmission();
-        }
-        switch (address_buf) {
-          case 0x01:
-            address = S23;
-            break;
-
-          case 0x02:
-            address = S24;
-            break;
-
-          case 0x03:
-            address = S21;
-            break;
-
-          case 0x04:
-            address = S19;
-            break;
-
-          case 0x05:
-            address = S20;
-            break;
-
-          case 0x06:
-            address = S22;
-            break;
-
-          case 0x07:
-            address = S31;
-            break;
-
-          case 0x08:
-            address = S9;
-            break;
-
-          case 0x09:
-            address = S15;
-            break;
-
-          case 0x0A:
-            address = S2;
-            break;
-
-          case 0x0B:
-            address = S4;
-            break;
-
-          case 0x0C:
-            address = S6;
-            break;
-
-          case 0x0D:
-            address = S5;
-            break;
-
-          case 0x0E:
-            address = S3;
-            break;
-
-          case 0x0F:
-            address = S1;
-            break;
-
-          case 0x10:
-            address = S12;
-            break;
-
-          case 0x11:
-            address = S11;
-            break;
-
-          case 0x12:
-            address = S14;
-            break;
-
-          case 0x13:
-            address = S13;
-            break;
-
-          case 0x14:
-            address = S16;
-            break;
-
-          case 0x15:
-            address = S8;
-            break;
-
-          case 0x16:
-            address = S7;
-            break;
-
-          case 0x17:
-            address = S10;
-            break;
-
-          case 0x18:
-            address = S26;
-            break;
-
-          case 0x19:
-            address = S25;
-            break;
-
-          case 0x1A:
-            address = S28;
-            break;
-
-          case 0x1B:
-            address = S27;
-            break;
-
-          case 0x1C:
-            address = S30;
-            break;
-
-          case 0x1D:
-            address = S29;
-            break;
-
-          case 0x1E:
-            address = S32;
-            break;
-
-          case 0x1F:
-            address = S17;
-            break;
-
-          case 0x20:
-            address = S18;
-            break;
-        }
-
+          goto start_of_loop; 
+        } 
+        address = pins.at(address_buf);
         break;
+      
       case 0x76:  // v
         if (isDigit(SerialBuffer[1]))
           val = strtoul((const char*)SerialBuffer + 1, &ptr, 10);   //Преобразование строки в значение типа unsigned long int
         else {
-          Serial.write("invalid command");                        // ответ от контроллера
+          Serial.write("invalid value command");                        // ответ от контроллера
           clear_after_end_of_transmission();
+          goto start_of_loop;
         }
         break;
+      
       case 0x66:  // f
         flags = 0;
         break;
@@ -271,10 +153,10 @@ void loop() {
       address = i;
       val = 0;
       setVoltage(val, address);
-      address = 0;
+      address = 0;// зачем это делать?
     }
     address = 8;
-    val = 0;
+    val = 0; 
     setVoltage(val, address);
     address = 9;
     setVoltage(val, address);
