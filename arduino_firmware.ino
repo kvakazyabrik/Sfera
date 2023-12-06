@@ -117,99 +117,99 @@ memset(SerialBuffer, 0, sizeof(SerialBuffer));                    // обнул�
 }
  switch (address_buf) {
           case 0x01:
-            address = S15;
-            break;
-
-          case 0x02:
-            address = S10;
-            break;
-
-          case 0x03:
-            address = S14;
-            break;
-
-          case 0x04:
-            address = S11;
-            break;
-
-          case 0x05:
-            address = S13;
-            break;
-
-          case 0x06:
-            address = S12;
-            break;
-
-          case 0x07:
-            address = S22;
-            break;
-
-          case 0x08:
-            address = S21;
-            break;
-
-          case 0x09:
-            address = S8;
-            break;
-
-          case 0x0A:
             address = S23;
             break;
 
-          case 0x0B:
-            address = S17;
+          case 0x02:
+            address = S24;
             break;
 
-          case 0x0C:
-            address = S16;
+          case 0x03:
+            address = S21;
             break;
 
-          case 0x0D:
+          case 0x04:
             address = S19;
             break;
 
-          case 0x0E:
-            address = S18;
-            break;
-
-          case 0x0F:
-            address = S9;
-            break;
-
-          case 0x10:
+          case 0x05:
             address = S20;
             break;
 
-          case 0x11:
+          case 0x06:
+            address = S22;
+            break;
+
+          case 0x07:
             address = S31;
             break;
 
-          case 0x12:
-            address = S32;
+          case 0x08:
+            address = S9;
             break;
 
-          case 0x13:
+          case 0x09:
+            address = S15;
+            break;
+
+          case 0x0A:
+            address = S2;
+            break;
+
+          case 0x0B:
             address = S4;
             break;
 
-          case 0x14:
-            address = S5;
-            break;
-
-          case 0x15:
-            address = S3;
-            break;
-
-          case 0x16:
+          case 0x0C:
             address = S6;
             break;
 
-          case 0x17:
+          case 0x0D:
+            address = S5;
+            break;
+
+          case 0x0E:
+            address = S3;
+            break;
+
+          case 0x0F:
             address = S1;
             break;
 
+          case 0x10:
+            address = S12;
+            break;
+
+          case 0x11:
+            address = S11;
+            break;
+
+          case 0x12:
+            address = S14;
+            break;
+
+          case 0x13:
+            address = S13;
+            break;
+
+          case 0x14:
+            address = S16;
+            break;
+
+          case 0x15:
+            address = S8;
+            break;
+
+          case 0x16:
+            address = S7;
+            break;
+
+          case 0x17:
+            address = S10;
+            break;
+
           case 0x18:
-            address = S2;
+            address = S26;
             break;
 
           case 0x19:
@@ -217,7 +217,7 @@ memset(SerialBuffer, 0, sizeof(SerialBuffer));                    // обнул�
             break;
 
           case 0x1A:
-            address = S24;
+            address = S28;
             break;
 
           case 0x1B:
@@ -225,7 +225,7 @@ memset(SerialBuffer, 0, sizeof(SerialBuffer));                    // обнул�
             break;
 
           case 0x1C:
-            address = S26;
+            address = S30;
             break;
 
           case 0x1D:
@@ -233,15 +233,15 @@ memset(SerialBuffer, 0, sizeof(SerialBuffer));                    // обнул�
             break;
 
           case 0x1E:
-            address = S28;
+            address = S32;
             break;
 
           case 0x1F:
-            address = S7;
+            address = S17;
             break;
 
           case 0x20:
-            address = S30;
+            address = S18;
             break;
         }
 
