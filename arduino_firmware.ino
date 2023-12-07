@@ -3,7 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "SPI.h"
-#include "unordered_map"
+
 /*#define MCP4921_CS_PIN    29*/
 
 uint8_t pinSensor = 10;  // Определяем номер вывода Arduino, к которому подключён датчик расхода воды.
@@ -12,41 +12,41 @@ float varQ;              // Объявляем переменную для хр�
 float varV;              // Объявляем переменную для хранения рассчитанного объема воды (л).
 
 //  инициализация пинов на плате для светодиодов
-unordered_map <int,unsigned long> pins;
-pins ={
-        {1,44},
-        {2,45},
-        {3,42},
-        {4,40},
-        {5,41},
-        {6,43},
-        {7,13},
-        {8,30},
-        {9,36},
-        {10,23},
-        {11,25},
-        {12,27},
-        {13,26},
-        {14,24},
-        {15,22},
-        {16,33},
-        {17,32},
-        {18,35},
-        {19,34},
-        {20,37},
-        {21,29},
-        {22,28},
-        {23,31},
-        {24,47},
-        {25,46},
-        {26,49},
-        {27,48},
-        {28,8},
-        {29,9},
-        {30,53},
-        {31,38},
-        {32,39}
-    };
+int getAdress(unsigned long address){
+  if(address == 0x1)  return 44;
+  if(address == 0x2)  return 45;
+  if(address == 0x3)  return 42;
+  if(address == 0x4)  return 40;
+  if(address == 0x5)  return 41;
+  if(address == 0x6)  return 43;
+  if(address == 0x7)  return 13;
+  if(address == 0x8)  return 30;
+  if(address == 0x9)  return 36;
+  if(address == 0x0A) return 23;
+  if(address == 0x0B) return 25;
+  if(address == 0x0C) return 27;
+  if(address == 0x0D) return 26;
+  if(address == 0x0E) return 24;
+  if(address == 0x0F) return 22;
+  if(address == 0x10) return 33;
+  if(address == 0x11) return 32;
+  if(address == 0x12) return 35;
+  if(address == 0x13) return 34;
+  if(address == 0x14) return 37;
+  if(address == 0x15) return 29;
+  if(address == 0x16) return 28;
+  if(address == 0x17) return 31;
+  if(address == 0x18) return 47;
+  if(address == 0x19) return 46;
+  if(address == 0x1A) return 49;
+  if(address == 0x1B) return 48;
+  if(address == 0x1C) return 8;
+  if(address == 0x1D) return 9;
+  if(address == 0x1E) return 53;
+  if(address == 0x1F) return 38;
+  if(address == 0x20) return 39;
+};
+
 
 char SerialData = 0;  //  шапка сом - порта
 char SerialBuffer[16];
@@ -61,7 +61,7 @@ unsigned long val = 0;
 // forward declaration
 void setup();
 void clear_after_end_of_transmission();
-setVoltage(uint16_t value, uint16_t address_pin);
+void setVoltage(uint16_t value, uint16_t address_pin);
 
 inline void clear_after_end_of_transmission() {
   memset(SerialBuffer, 0, sizeof(SerialBuffer));                    // обнуление буфера
@@ -86,12 +86,11 @@ void setup() {
   while (!Serial) {};
   pinMode(pinSensor, INPUT);  // Конфигурируем вывод к которому подключён датчик, как вход.
   varQ = 0;
-  varV = 0;  // Обнуляем все переменные.
+  varV = 0;
 
 }  // 51 и 52 не учавствуют
 
 void setVoltage(uint16_t value, uint16_t address_pin) {
-  // value= 20;
   uint16_t data = 0x3000 | value;
   digitalWrite(address_pin, LOW);  // поднятие cs в 1 с нужным аддресом
   SPI.beginTransaction(SPISettings(16000000, MSBFIRST, SPI_MODE0));
@@ -128,7 +127,7 @@ start_of_loop:
           clear_after_end_of_transmission();
           goto start_of_loop; 
         } 
-        address = pins.at(address_buf);
+        address = getAdress(address_buf);
         break;
       
       case 0x76:  // v
@@ -173,9 +172,7 @@ start_of_loop:
     setVoltage(val, address);
     val = 0;
     address = 0;
-    Serial.write("complete");                        // ответ от контроллера
-    Serial.println("    ");
-    Serial.println("    ");
+    Serial.write("complete\n\n");                        // ответ от контроллера
   }
 
   varQ = 0;                                          // Сбрасываем скорость потока воды.
