@@ -73,8 +73,8 @@ inline int getAdress(const unsigned long& address) {
 
 uint8_t pinSensor = 10;  // Определяем номер вывода Arduino, к которому подключён датчик расхода воды.
 int freq = 11;           // Объявляем динамик
-float varQ;              // Объявляем переменную для хранения рассчитанной скорости потока воды (л/с).
-float varV;              // Объявляем переменную для хранения рассчитанного объема воды (л).
+float varQ = 0.0;        // Объявляем переменную для хранения рассчитанной скорости потока воды (л/с).
+float varV = 0.0;        // Объявляем переменную для хранения рассчитанного объема воды (л).
 
 char SerialData = 0;
 char SerialBuffer[16];
@@ -132,8 +132,6 @@ void setup() {
   Serial.begin(9600);
   while (!Serial) {};
   pinMode(pinSensor, INPUT);
-  varQ = 0;
-  varV = 0;
 }
 inline void setVoltage(uint16_t value, uint16_t address_pin) {
   uint16_t data = 0x3000 | value;
@@ -164,7 +162,7 @@ start_of_loop:
 
   if (endOfTransmission) {
     switch (SerialBuffer[0]) {
-
+////////////////////////////////////////////////////////////////// SET ADDRESS //////////////////////////////////////////////////////////////////
       case 0x61:  // a --> выбор адреса
         if (isDigit(SerialBuffer[1]))
           address_buf = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
@@ -175,22 +173,20 @@ start_of_loop:
         }
         address = getAdress(address_buf);
         goto start_of_loop;
-
+//////////////////////////////////////////////////////////////////// SET VALUE /////////////////////////////////////////////////////////////////
       case 0x76:  // v --> установка значения
         if (isDigit(SerialBuffer[1]))
           val = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
         else {
           Serial.write("invalid value command");
-          clear_buffer_and_vars();
-          goto start_of_loop;
         }
         if (val != 0 & address != 0) {
           setVoltage(val, address);
-          clear_buffer_and_vars();
-          Serial.write("complete\n\n");
+          Serial.write("set value is completed.......\n\n");
         }
+        clear_buffer_and_vars();
         goto start_of_loop;
-
+///////////////////////////////////////////////////////////////////// TURN OFF ALL DIODS //////////////////////////////////////////////////////////////////
       case 0x66:  // f --> выключение всех светодиодов
         for (int i = 22; i <= 49; i++) {
           setVoltage(0, i);
@@ -202,7 +198,5 @@ start_of_loop:
         clear_buffer_and_vars();
         goto start_of_loop;
     }
-
   }
-
 }
