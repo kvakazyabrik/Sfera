@@ -3,58 +3,143 @@
 #include <string.h>
 #include <ctype.h>
 #include "SPI.h"
-/*#define MCP4921_CS_PIN    29*/
+
+inline int get_address(const unsigned long& address) {
+  if (address == 0x1)  // 1  - 397.755
+    return 44;
+  if (address == 0x2)  // 2  - 404.563
+    return 45;
+  if (address == 0x3)  // 3  - 412.732
+    return 42;
+  if (address == 0x4)  // 4  - 427.213
+    return 40;
+  if (address == 0x5)  // 5  - 433.773
+    return 41;
+  if (address == 0x6)  // 6  - 445.531
+    return 43;
+  if (address == 0x7)  // 7  - 452.71
+    return 13;
+  if (address == 0x8)  // 8  - 461.993
+    return 30;
+  if (address == 0x9)  // 9  - 473.628
+    return 36;
+  if (address == 0x0A) // 10 - 505.066
+    return 23;
+  if (address == 0x0B) // 11 - 534.276
+    return 25;
+  if (address == 0x0C) // 12 - 549.252
+    return 27;
+  if (address == 0x0D) // 13 - 560.516
+    return 26;
+  if (address == 0x0E) // 14 - 588.983
+    return 24;
+  if (address == 0x0F) // 15 - 595.543
+    return 22;
+  if (address == 0x10) // 16 - 607.549
+    return 33;
+  if (address == 0x11) // 17 - 627.105
+    return 32;
+  if (address == 0x12) // 18 - 640.101
+    return 35;
+  if (address == 0x13) // 19 - 658.791
+    return 34;
+  if (address == 0x14) // 20 - 679.089
+    return 37;
+  if (address == 0x15) // 21 - 725.133
+    return 29;
+  if (address == 0x16) // 22 - 745.802
+    return 28;
+  if (address == 0x17) // 23 - 775.013
+    return 31;
+  if (address == 0x18) // 24 - 800.634
+    return 47;
+  if (address == 0x19) // 25 - 820.066
+    return 46;
+  if (address == 0x1A) // 26 - 839.127
+    return 49;
+  if (address == 0x1B) // 27 - 893.463
+    return 48;
+  if (address == 0x1C) // 28 - 931.461
+    return 8;
+  if (address == 0x1D) // 29 - 967.107
+    return 9;
+  if (address == 0x1E) // 30 - 1014.64
+    return 53;
+  if (address == 0x1F) // 31 - -- unused --
+    return 38;
+  if (address == 0x20) // 32 - -- unused --
+    return 39;
+};
 
 uint8_t pinSensor = 10;  // Определяем номер вывода Arduino, к которому подключён датчик расхода воды.
 int freq = 11;           // Объявляем динамик
-float varQ;              // Объявляем переменную для хранения рассчитанной скорости потока воды (л/с).
-float varV;              // Объявляем переменную для хранения рассчитанного объема воды (л).
-const int S1 = 22;       //  инициализация пинов на плате для светодиодов
-const int S2 = 23;
-const int S3 = 24;
-const int S4 = 25;
-const int S5 = 26;
-const int S6 = 27;
-const int S7 = 28;
-const int S8 = 29;
-const int S9 = 30;
-const int S10 = 31;
-const int S11 = 32;
-const int S12 = 33;
-const int S13 = 34;
-const int S14 = 35;
-const int S15 = 36;
-const int S16 = 37;
-const int S17 = 38;
-const int S18 = 39;
-const int S19 = 40;
-const int S20 = 41;
-const int S21 = 42;
-const int S22 = 43;
-const int S23 = 44;
-const int S24 = 45;
-const int S25 = 46;
-const int S26 = 47;
-const int S27 = 48;
-const int S28 = 49;
-const int S29 = 9;
-const int S30 = 8;
-const int S31 = 13;
-const int S32 = 53;
+float varQ = 0.0;        // Объявляем переменную для хранения рассчитанной скорости потока воды (л/с).
+float varV = 0.0;        // Объявляем переменную для хранения рассчитанного объема воды (л).
 
-char SerialData = 0;  //  шапка сом - порта
+char SerialData = 0;
 char SerialBuffer[16];
+char* ptr = nullptr;
 int BufferIndex = 0;
+int address = 0;
+unsigned long val = 0;
+unsigned long address_buf = 0;
 volatile bool endOfTransmission = false;
 
-char *ptr;
-unsigned long address_buf = 0;
-int address = 0;
+inline void clear_buffer();
+inline void clear_address_and_value();
+inline void clear_buffer_and_variables();
+inline void check_water_cooler();
+inline void set_voltage(uint16_t value, uint16_t address_pin);
 
-int flags = 0;
+inline void clear_buffer() {
+  memset(SerialBuffer, 0, sizeof(SerialBuffer));
+  BufferIndex = 0;
+  endOfTransmission = false;
+  address_buf = 0;
+}
 
-unsigned long val = 0;
+inline void clear_address_and_value() {
+  val = 0;
+  address = 0;
+}
 
+inline void clear_buffer_and_variables() {
+  clear_buffer();
+  clear_address_and_value();
+}
+
+inline void check_water_cooler() {
+  varQ = 0;                                          // Сбрасываем скорость потока воды.
+  uint32_t varL = pulseIn(pinSensor, HIGH, 200000);  // Считываем длительность импульса, но не дольше 0,2 сек.
+  if (varL) {                                        // Если длительность импульса считана, то ...
+    float varT = 2.0 * (float)varL / 1000000;        // Определяем период следования импульсов в сек.
+    float varF = 1 / varT;                           // Определяем частоту следования импульсов в Гц.
+    varQ = varF / 450.0f;                            // Определяем скорость потока воды л/с.
+    varV += varQ * varT;                             // Определяем объем воды л.
+  }                                                  //
+  //  Выводим рассчитанные данные:                                //
+  //Serial.println((String) "Объем " + varV + "л, скорость " + (varQ * 60.0f) + "л/м.");
+
+  if (varQ == 0) {     // Если расход = 0, те не раб, то:
+    tone(freq, 1);  //включаем на 1000
+
+    asm volatile("jmp 0x00"); // reset до состояния нормальной работы
+  } else {
+    noTone(freq);
+  }
+}
+
+inline void set_voltage(uint16_t value, uint16_t address_pin) {
+  uint16_t data = 0x3000 | value;
+  digitalWrite(address_pin, LOW);  // поднятие cs в 1 с нужным аддресом
+  SPI.beginTransaction(SPISettings(16000000, MSBFIRST, SPI_MODE0));
+  SPI.transfer((uint8_t)(data >> 8));
+  Serial.println((uint8_t)(data >> 8), HEX);
+  SPI.transfer((uint8_t)(data & 0xFF));
+  Serial.println((uint8_t)(data & 0xFF), HEX);
+  SPI.endTransaction();
+  digitalWrite(address_pin, HIGH);
+}
 
 void setup() {
   SPI.begin();
@@ -67,30 +152,15 @@ void setup() {
   pinMode(9, OUTPUT);
   pinMode(13, OUTPUT);
 
-
-  Serial.begin(9600);  // Инициируем передачу данных в монитор последовательного порта.
+  Serial.begin(9600);
   while (!Serial) {};
-  pinMode(pinSensor, INPUT);  // Конфигурируем вывод к которому подключён датчик, как вход.
-  varQ = 0;
-  varV = 0;  // Обнуляем все переменные.
-
-}  // 51 и 52 не учавствуют
-
-void setVoltage(uint16_t value, uint16_t address_pin) {
-  // value= 20;
-  uint16_t data = 0x3000 | value;
-  digitalWrite(address_pin, LOW);  // поднятие cs в 1 с нужным аддресом
-  SPI.beginTransaction(SPISettings(16000000, MSBFIRST, SPI_MODE0));
-  SPI.transfer((uint8_t)(data >> 8));
-  Serial.println((uint8_t)(data >> 8), HEX);
-  SPI.transfer((uint8_t)(data & 0xFF));
-  Serial.println((uint8_t)(data & 0xFF), HEX);
-  SPI.endTransaction();
-  digitalWrite(address_pin, HIGH);
+  pinMode(pinSensor, INPUT);
 }
 
 void loop() {
-  if (Serial.available() > 0) {  //   общение по com - порту
+start_of_loop:
+  check_water_cooler();
+  if (Serial.available() > 0) {
     SerialData = Serial.read();
     if (SerialData == '\n') {
       SerialBuffer[BufferIndex++] = '\0';
@@ -103,217 +173,43 @@ void loop() {
   }
 
   if (endOfTransmission) {
-    switch (SerialBuffer[0]) {  // по написанному в буффере выбор адреса светодиода
-
-      case 0x61:  // a
+    switch (SerialBuffer[0]) {
+////////////////////////////////////////////////////////////////// SET ADDRESS //////////////////////////////////////////////////////////////////
+      case 0x61:  // a --> выбор адреса
         if (isDigit(SerialBuffer[1]))
-          address_buf = strtoul((const char *)SerialBuffer + 1, &ptr, 10);  //Преобразование строки в значение типа unsigned long int
-                else {
-          Serial.write("invalid command");                        // ответ от контроллера
-memset(SerialBuffer, 0, sizeof(SerialBuffer));                    // обнуление буфера
-    BufferIndex = 0;
-    endOfTransmission = 0;
-    address_buf = 0;
-}
- switch (address_buf) {
-          case 0x01:
-            address = S23;
-            break;
-
-          case 0x02:
-            address = S24;
-            break;
-
-          case 0x03:
-            address = S21;
-            break;
-
-          case 0x04:
-            address = S19;
-            break;
-
-          case 0x05:
-            address = S20;
-            break;
-
-          case 0x06:
-            address = S22;
-            break;
-
-          case 0x07:
-            address = S31;
-            break;
-
-          case 0x08:
-            address = S9;
-            break;
-
-          case 0x09:
-            address = S15;
-            break;
-
-          case 0x0A:
-            address = S2;
-            break;
-
-          case 0x0B:
-            address = S4;
-            break;
-
-          case 0x0C:
-            address = S6;
-            break;
-
-          case 0x0D:
-            address = S5;
-            break;
-
-          case 0x0E:
-            address = S3;
-            break;
-
-          case 0x0F:
-            address = S1;
-            break;
-
-          case 0x10:
-            address = S12;
-            break;
-
-          case 0x11:
-            address = S11;
-            break;
-
-          case 0x12:
-            address = S14;
-            break;
-
-          case 0x13:
-            address = S13;
-            break;
-
-          case 0x14:
-            address = S16;
-            break;
-
-          case 0x15:
-            address = S8;
-            break;
-
-          case 0x16:
-            address = S7;
-            break;
-
-          case 0x17:
-            address = S10;
-            break;
-
-          case 0x18:
-            address = S26;
-            break;
-
-          case 0x19:
-            address = S25;
-            break;
-
-          case 0x1A:
-            address = S28;
-            break;
-
-          case 0x1B:
-            address = S27;
-            break;
-
-          case 0x1C:
-            address = S30;
-            break;
-
-          case 0x1D:
-            address = S29;
-            break;
-
-          case 0x1E:
-            address = S32;
-            break;
-
-          case 0x1F:
-            address = S17;
-            break;
-
-          case 0x20:
-            address = S18;
-            break;
+          address_buf = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
+        else {
+          Serial.write("invalid pin command");
+          clear_buffer_and_variables();
+          goto start_of_loop;
         }
-
-        break;
-      case 0x76:  // v
+        address = get_address(address_buf);
+        clear_buffer();
+        goto start_of_loop;
+//////////////////////////////////////////////////////////////////// SET VALUE /////////////////////////////////////////////////////////////////
+      case 0x76:  // v --> установка значения
         if (isDigit(SerialBuffer[1]))
-          val = strtoul((const char *)SerialBuffer + 1, &ptr, 10);  //Преобразование строки в значение типа unsigned long int
-          else {
-          Serial.write("invalid command");                        // ответ от контроллера
-memset(SerialBuffer, 0, sizeof(SerialBuffer));                    // обнуление буфера
-    BufferIndex = 0;
-    endOfTransmission = 0;
-    address_buf = 0;
-}
-        break;
-      case 0x66:  // f
-        flags = 0;
-        break;
-    }
-    memset(SerialBuffer, 0, sizeof(SerialBuffer));
-    BufferIndex = 0;
-    endOfTransmission = 0;
-    address_buf = 0;
-  }
-
-  if (flags == 0) {
-    for (int i = 22; i <= 49; i++) {
-      address = i;
-      val = 0;
-      setVoltage(val, address);
-      address = 0;
-    }
-    address = 8;
-    val = 0;
-    setVoltage(val, address);
-    address = 9;
-    setVoltage(val, address);
-    address = 13;
-    setVoltage(val, address);
-    address = 53;
-    setVoltage(val, address);
-    flags = 1;
-    val = 0;
-    address = 0;
-  }
-
-  if (val != 0 & address != 0) {
-    setVoltage(val, address);
-    val = 0;
-    address = 0;
-    Serial.write("complete");                        // ответ от контроллера
-    Serial.println("    ");
-    Serial.println("    ");
-  }
-
-  varQ = 0;                                          // Сбрасываем скорость потока воды.
-  uint32_t varL = pulseIn(pinSensor, HIGH, 200000);  // Считываем длительность импульса, но не дольше 0,2 сек.
-  if (varL) {                                        // Если длительность импульса считана, то ...
-    float varT = 2.0 * (float)varL / 1000000;        // Определяем период следования импульсов в сек.
-    float varF = 1 / varT;                           // Определяем частоту следования импульсов в Гц.
-    varQ = varF / 450.0f;                            // Определяем скорость потока воды л/с.
-    varV += varQ * varT;                             // Определяем объем воды л.
-  }                                                  //
-  //  Выводим рассчитанные данные:                                //
-  //Serial.println((String) "Объем " + varV + "л, скорость " + (varQ * 60.0f) + "л/м.");
-
-    if (varQ == 0) {     // Если расход = 0, те не раб, то:
-    tone(freq, 1);  //включаем на 1000
-
-    asm volatile("jmp 0x00"); // reset до состояния нормальной работы
-  }
-   else {
- noTone (freq);
+          val = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
+        else {
+          Serial.write("invalid value command");
         }
+        if (val != 0 & address != 0) {
+          set_voltage(val, address);
+          Serial.write("set value is completed.......\n\n");
+        }
+        clear_buffer_and_variables();
+        goto start_of_loop;
+///////////////////////////////////////////////////////////////////// TURN OFF ALL DIODS //////////////////////////////////////////////////////////////////
+      case 0x66:  // f --> выключение всех светодиодов
+        for (int i = 22; i <= 49; i++) {
+          set_voltage(0, i);
+        }
+        set_voltage(0, 8);
+        set_voltage(0, 9);
+        set_voltage(0, 13);
+        set_voltage(0, 53);
+        clear_buffer_and_variables();
+        goto start_of_loop;
+    }
+  }
 }
