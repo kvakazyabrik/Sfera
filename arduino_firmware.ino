@@ -172,6 +172,9 @@ start_of_loop:
           goto start_of_loop;
         }
         address = getAdress(address_buf);
+        memset(SerialBuffer, 0, sizeof(SerialBuffer));
+        BufferIndex = 0;
+        endOfTransmission = false;
         goto start_of_loop;
 //////////////////////////////////////////////////////////////////// SET VALUE /////////////////////////////////////////////////////////////////
       case 0x76:  // v --> установка значения
