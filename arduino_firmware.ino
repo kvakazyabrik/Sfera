@@ -146,11 +146,11 @@ void setup() {
   for (int i = 22; i <= 50; i++) {
     pinMode(i, OUTPUT);
   }
-  pinMode(50, OUTPUT);
-  pinMode(53, OUTPUT);
   pinMode(8, OUTPUT);
   pinMode(9, OUTPUT);
   pinMode(13, OUTPUT);
+  pinMode(50, OUTPUT); // в цикле уже определён
+  pinMode(53, OUTPUT);
 
   Serial.begin(9600);
   while (!Serial) {};
@@ -174,7 +174,7 @@ start_of_loop:
 
   if (endOfTransmission) {
     switch (SerialBuffer[0]) {
-////////////////////////////////////////////////////////////////// SET ADDRESS //////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////// SET ADDRESS ///////////////////
       case 0x61:  // a --> выбор адреса
         if (isDigit(SerialBuffer[1]))
           address_buf = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
@@ -186,7 +186,7 @@ start_of_loop:
         address = get_address(address_buf);
         clear_buffer();
         goto start_of_loop;
-//////////////////////////////////////////////////////////////////// SET VALUE /////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////// SET VALUE /////////////////////
       case 0x76:  // v --> установка значения
         if (isDigit(SerialBuffer[1]))
           val = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
@@ -199,7 +199,7 @@ start_of_loop:
         }
         clear_buffer_and_variables();
         goto start_of_loop;
-///////////////////////////////////////////////////////////////////// TURN OFF ALL DIODS //////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////// TURN OFF ALL DIODS ////////////
       case 0x66:  // f --> выключение всех светодиодов
         for (int i = 22; i <= 49; i++) {
           set_voltage(0, i);
