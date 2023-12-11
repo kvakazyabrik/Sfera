@@ -71,10 +71,10 @@ inline int get_address(const unsigned long& address) {
     return 39;
 };
 
-uint8_t pinSensor = 10;  // Определяем номер вывода Arduino, к которому подключён датчик расхода воды.
-int freq = 11;           // Объявляем динамик
-float varQ = 0.0;        // Объявляем переменную для хранения рассчитанной скорости потока воды (л/с).
-float varV = 0.0;        // Объявляем переменную для хранения рассчитанного объема воды (л).
+uint8_t pinSensor = 10;  // номер вывода датчика расхода воды
+int freq = 11;           // номер вывода динамика
+float varQ = 0.0;        // скорость потока воды (л/с)
+float varV = 0.0;        // объем воды (л)
 
 char SerialData = 0;
 char SerialBuffer[16];
