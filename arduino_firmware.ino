@@ -70,62 +70,62 @@ inline int get_address(const unsigned long& address) {
   if (address == 0x20) // 32 - -- unused --
     return 39;
 };
-
+const int PINS_COUNT = 32;
+int pins [PINS_COUNT];   // выводы для светодиодов инициализация в fill_pins()
 uint8_t pinSensor = 10;  // номер вывода датчика расхода воды
-int freq = 11;           // номер вывода динамика
-float varQ = 0.0;        // скорость потока воды (л/с)
-float varV = 0.0;        // объем воды (л)
 
 char SerialData = 0;
-char SerialBuffer[16];
+char SerialBuffer[6];
 char* ptr = nullptr;
 int BufferIndex = 0;
 int address = 0;
-unsigned long val = 0;
-unsigned long address_buf = 0;
 volatile bool endOfTransmission = false;
 
+void fill_pins();
 inline void clear_buffer();
-inline void clear_address_and_value();
-inline void clear_buffer_and_variables();
 inline void check_water_cooler();
 inline void set_voltage(uint16_t value, uint16_t address_pin);
+
+void fill_pins() {
+  for (int i = 0; i < PINS_COUNT; ++i) {
+    if (i <= 27) {
+      pins[i] = i + 22;
+    } else {
+      if (i == 28)
+        pins[i] = 8;
+      if (i == 29)
+        pins[i] = 9;
+      if (i == 30)
+        pins[i] = 13;
+      if (i == 31)
+        pins[i] = 53;
+    }
+  }
+}
 
 inline void clear_buffer() {
   memset(SerialBuffer, 0, sizeof(SerialBuffer));
   BufferIndex = 0;
   endOfTransmission = false;
-  address_buf = 0;
-}
-
-inline void clear_address_and_value() {
-  val = 0;
-  address = 0;
-}
-
-inline void clear_buffer_and_variables() {
-  clear_buffer();
-  clear_address_and_value();
 }
 
 inline void check_water_cooler() {
-  varQ = 0;                                          // Сбрасываем скорость потока воды.
+  int pin_speaker = 11;                              // pin динамика
+  float varQ = 0.0;                                  // скорость потока воды (л/с)
+  float varV = 0.0;                                  // объем воды (л)
   uint32_t varL = pulseIn(pinSensor, HIGH, 200000);  // Считываем длительность импульса, но не дольше 0,2 сек.
-  if (varL) {                                        // Если длительность импульса считана, то ...
-    float varT = 2.0 * (float)varL / 1000000;        // Определяем период следования импульсов в сек.
-    float varF = 1 / varT;                           // Определяем частоту следования импульсов в Гц.
-    varQ = varF / 450.0f;                            // Определяем скорость потока воды л/с.
-    varV += varQ * varT;                             // Определяем объем воды л.
+  if (varL) {
+    float varT = 2.0 * (float)varL / 1000000;        // период следования импульсов в сек.
+    float varF = 1 / varT;                           // частота следования импульсов в Гц.
+    varQ = varF / 450.0f;                            // скорость потока воды л/с.
+    varV += varQ * varT;                             // объем воды л.
   }                                                  //
-  //  Выводим рассчитанные данные:                                //
   //Serial.println((String) "Объем " + varV + "л, скорость " + (varQ * 60.0f) + "л/м.");
-
-  if (varQ == 0) {     // Если расход = 0, те не раб, то:
-    tone(freq, 1);  //включаем на 1000
-
-    asm volatile("jmp 0x00"); // reset до состояния нормальной работы
+  if (varQ == 0) {
+    tone(pin_speaker, 400, 1000);                    // включаем звук на 1000 ms c частотой 400 Гц
+    asm volatile("jmp 0x00");                        // перезапуск программы (soft reset)
   } else {
-    noTone(freq);
+    noTone(pin_speaker);
   }
 }
 
@@ -142,16 +142,11 @@ inline void set_voltage(uint16_t value, uint16_t address_pin) {
 }
 
 void setup() {
+  fill_pins();
   SPI.begin();
-  for (int i = 22; i <= 50; i++) {
-    pinMode(i, OUTPUT);
+  for (int i = 0; i < PINS_COUNT; i++) {
+    pinMode(pins[i], OUTPUT);
   }
-  pinMode(8, OUTPUT);
-  pinMode(9, OUTPUT);
-  pinMode(13, OUTPUT);
-  pinMode(50, OUTPUT); // в цикле уже определён
-  pinMode(53, OUTPUT);
-
   Serial.begin(9600);
   while (!Serial) {};
   pinMode(pinSensor, INPUT);
@@ -159,13 +154,13 @@ void setup() {
 
 void loop() {
 start_of_loop:
+  clear_buffer();
   check_water_cooler();
   if (Serial.available() > 0) {
     SerialData = Serial.read();
     if (SerialData == '\n') {
       SerialBuffer[BufferIndex++] = '\0';
       endOfTransmission = true;
-
     } else {
       SerialBuffer[BufferIndex++] = SerialData;
       endOfTransmission = false;
@@ -176,18 +171,19 @@ start_of_loop:
     switch (SerialBuffer[0]) {
 /////////////////////////////////////////////////////////////////// SET ADDRESS ///////////////////
       case 0x61:  // a --> выбор адреса
+        unsigned long  address_buf = 0;
         if (isDigit(SerialBuffer[1]))
           address_buf = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
         else {
           Serial.write("invalid pin command");
-          clear_buffer_and_variables();
+          address = 0;
           goto start_of_loop;
         }
         address = get_address(address_buf);
-        clear_buffer();
         goto start_of_loop;
 /////////////////////////////////////////////////////////////////// SET VALUE /////////////////////
       case 0x76:  // v --> установка значения
+        unsigned long  val = 0;
         if (isDigit(SerialBuffer[1]))
           val = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
         else {
@@ -197,18 +193,14 @@ start_of_loop:
           set_voltage(val, address);
           Serial.write("set value is completed.......\n\n");
         }
-        clear_buffer_and_variables();
+        address = 0;
         goto start_of_loop;
 /////////////////////////////////////////////////////////////////// TURN OFF ALL DIODS ////////////
       case 0x66:  // f --> выключение всех светодиодов
-        for (int i = 22; i <= 49; i++) {
-          set_voltage(0, i);
+        for (int i = 0; i < PINS_COUNT; i++) {
+          set_voltage(0, pins[i]);
         }
-        set_voltage(0, 8);
-        set_voltage(0, 9);
-        set_voltage(0, 13);
-        set_voltage(0, 53);
-        clear_buffer_and_variables();
+        address = 0;
         goto start_of_loop;
     }
   }
