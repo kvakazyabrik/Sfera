@@ -41,14 +41,10 @@ int pins [PINS_COUNT] {
 };
 uint8_t pinSensor = 10;  // номер вывода датчика расхода воды
 
-char SerialData = 0;
 char SerialBuffer[16];
 char* ptr = nullptr;
-int BufferIndex = 0;
 int address = 0;
-unsigned long val = 0;
 unsigned long address_buf = 0;
-volatile bool endOfTransmission = false;
 
 inline void clear_buffer();
 inline void clear_address_and_value();
@@ -58,13 +54,10 @@ inline void set_voltage(uint16_t value, uint16_t address_pin);
 
 inline void clear_buffer() {
   memset(SerialBuffer, 0, sizeof(SerialBuffer));
-  BufferIndex = 0;
-  endOfTransmission = false;
   address_buf = 0;
 }
 
 inline void clear_address_and_value() {
-  val = 0;
   address = 0;
 }
 
@@ -114,28 +107,26 @@ void setup() {
   Serial.begin(9600);
   while (!Serial) {};
   pinMode(pinSensor, INPUT);
-  Serial.println("setup....");
+  clear_buffer_and_variables();
 }
 
 void loop() {
 start_of_loop:
   check_water_cooler();
-  if (Serial.available() > 0) {
-    SerialData = Serial.read();
-    if (SerialData == '\n') {
-      SerialBuffer[BufferIndex++] = '\0';
-      endOfTransmission = true;
-
+  int index = 0;
+  char data;
+  while (Serial.available()) {
+    data = Serial.read();
+    Serial.println(data);
+    if (data == '\n') {
+      SerialBuffer[index++] = '\0';
+      break;
     } else {
-      SerialBuffer[BufferIndex++] = SerialData;
-      endOfTransmission = false;
+      SerialBuffer[index++] = data;
     }
   }
-
-  if (endOfTransmission) {
-    switch (SerialBuffer[0]) {
-/////////////////////////////////////////////////////////////////// SET ADDRESS ///////////////////
-      case 0x61:  // a --> выбор адреса
+    /////////////////////////////////////////////////////////////////// SET ADDRESS ///////////////////
+      if(SerialBuffer[0]=='a'){ // a --> выбор адреса
         if (isDigit(SerialBuffer[1]))
           address_buf = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
         else {
@@ -146,8 +137,10 @@ start_of_loop:
         address = pins[address_buf];
         clear_buffer();
         goto start_of_loop;
+        }else if(SerialBuffer[0]=='v'){
 /////////////////////////////////////////////////////////////////// SET VALUE /////////////////////
-      case 0x76:  // v --> установка значения
+        // v --> установка значения
+        unsigned long val = 0;
         if (isDigit(SerialBuffer[1]))
           val = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
         else {
@@ -155,17 +148,18 @@ start_of_loop:
         }
         if (val != 0 & address != 0) {
           set_voltage(val, address);
-          Serial.write("set value is completed.......\n\n");
+          Serial.println((String) "set value is completed......."+val);
         }
         clear_buffer_and_variables();
         goto start_of_loop;
+        }else if(SerialBuffer[0]=='f'){
 /////////////////////////////////////////////////////////////////// TURN OFF ALL DIODS ////////////
-      case 0x66:  // f --> выключение всех светодиодов
+        // f --> выключение всех светодиодов
+        Serial.println("f ----------- case");
         for (int i = 0; i < PINS_COUNT; i++) {
           set_voltage(0, pins[i]);
         }
         clear_buffer_and_variables();
         goto start_of_loop;
-    }
+        } 
   }
-}
