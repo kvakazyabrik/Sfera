@@ -39,9 +39,7 @@ int pins [PINS_COUNT] {
   38, // 31 - -- unused --
   39  // 32 - -- unused --
 };
-
 uint8_t pinSensor = 10;  // номер вывода датчика расхода воды
-
 
 char SerialData = 0;
 char SerialBuffer[16];
@@ -76,24 +74,21 @@ inline void clear_buffer_and_variables() {
 }
 
 inline void check_water_cooler() {
-int freq = 11;                                       // номер вывода динамика
-float varQ = 0.0;                                    // скорость потока воды (л/с)
-float varV = 0.0;                                    // объем воды (л)  
-                                                     // Сбрасываем скорость потока воды.
-  uint32_t varL = pulseIn(pinSensor, HIGH, 200000);  // Считываем длительность импульса, но не дольше 0,2 сек.
-  if (varL) {                                        // Если длительность импульса считана, то ...
-    float varT = 2.0 * (float)varL / 1000000;        // Определяем период следования импульсов в сек.
-    float varF = 1 / varT;                           // Определяем частоту следования импульсов в Гц.
-    varQ = varF / 450.0f;                            // Определяем скорость потока воды л/с.
-    varV += varQ * varT;                             // Определяем объем воды л.
-  }                                                  //
-  //  Выводим рассчитанные данные:                                //
+  int freq = 11;                                       // номер вывода динамика
+  float varQ = 0.0;                                    // скорость потока воды (л/с)
+  float varV = 0.0;                                    // объем воды (л)
+ 
+  uint32_t varL = pulseIn(pinSensor, HIGH, 200000);    // Считываем длительность импульса, но не дольше 0,2 сек.
+  if (varL) {                                          // Если длительность импульса считана, то ...
+    float varT = 2.0 * (float)varL / 1000000;          // Определяем период следования импульсов в сек.
+    float varF = 1 / varT;                             // Определяем частоту следования импульсов в Гц.
+    varQ = varF / 450.0f;                              // Определяем скорость потока воды л/с.
+    varV += varQ * varT;                               // Определяем объем воды л.
+  }
   //Serial.println((String) "Объем " + varV + "л, скорость " + (varQ * 60.0f) + "л/м.");
-
-  if (varQ == 0) {     // Если расход = 0, те не раб, то:
-    tone(freq, 1);  //включаем на 1000
-
-    asm volatile("jmp 0x00"); // reset до состояния нормальной работы
+  if (varQ == 0) {
+    tone(freq, 1);
+    asm volatile("jmp 0x00"); // soft reset
   } else {
     noTone(freq);
   }
@@ -113,10 +108,9 @@ inline void set_voltage(uint16_t value, uint16_t address_pin) {
 
 void setup() {
   SPI.begin();
-  for (int i = 0; i <PINS_COUNT ; i++) {
+  for (int i = 0; i < PINS_COUNT ; i++) {
     pinMode(pins[i], OUTPUT);
   }
-
   Serial.begin(9600);
   while (!Serial) {};
   pinMode(pinSensor, INPUT);
@@ -167,7 +161,7 @@ start_of_loop:
         goto start_of_loop;
 /////////////////////////////////////////////////////////////////// TURN OFF ALL DIODS ////////////
       case 0x66:  // f --> выключение всех светодиодов
-        for (int i = 0; i <PINS_COUNT; i++) {
+        for (int i = 0; i < PINS_COUNT; i++) {
           set_voltage(0, pins[i]);
         }
         clear_buffer_and_variables();
