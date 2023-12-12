@@ -4,77 +4,44 @@
 #include <ctype.h>
 #include "SPI.h"
 
-inline int get_address(const unsigned long& address) {
-  if (address == 0x1)  // 1  - 397.755
-    return 44;
-  if (address == 0x2)  // 2  - 404.563
-    return 45;
-  if (address == 0x3)  // 3  - 412.732
-    return 42;
-  if (address == 0x4)  // 4  - 427.213
-    return 40;
-  if (address == 0x5)  // 5  - 433.773
-    return 41;
-  if (address == 0x6)  // 6  - 445.531
-    return 43;
-  if (address == 0x7)  // 7  - 452.71
-    return 13;
-  if (address == 0x8)  // 8  - 461.993
-    return 30;
-  if (address == 0x9)  // 9  - 473.628
-    return 36;
-  if (address == 0x0A) // 10 - 505.066
-    return 23;
-  if (address == 0x0B) // 11 - 534.276
-    return 25;
-  if (address == 0x0C) // 12 - 549.252
-    return 27;
-  if (address == 0x0D) // 13 - 560.516
-    return 26;
-  if (address == 0x0E) // 14 - 588.983
-    return 24;
-  if (address == 0x0F) // 15 - 595.543
-    return 22;
-  if (address == 0x10) // 16 - 607.549
-    return 33;
-  if (address == 0x11) // 17 - 627.105
-    return 32;
-  if (address == 0x12) // 18 - 640.101
-    return 35;
-  if (address == 0x13) // 19 - 658.791
-    return 34;
-  if (address == 0x14) // 20 - 679.089
-    return 37;
-  if (address == 0x15) // 21 - 725.133
-    return 29;
-  if (address == 0x16) // 22 - 745.802
-    return 28;
-  if (address == 0x17) // 23 - 775.013
-    return 31;
-  if (address == 0x18) // 24 - 800.634
-    return 47;
-  if (address == 0x19) // 25 - 820.066
-    return 46;
-  if (address == 0x1A) // 26 - 839.127
-    return 49;
-  if (address == 0x1B) // 27 - 893.463
-    return 48;
-  if (address == 0x1C) // 28 - 931.461
-    return 8;
-  if (address == 0x1D) // 29 - 967.107
-    return 9;
-  if (address == 0x1E) // 30 - 1014.64
-    return 53;
-  if (address == 0x1F) // 31 - -- unused --
-    return 38;
-  if (address == 0x20) // 32 - -- unused --
-    return 39;
+const int PINS_COUNT = 32;
+int pins [PINS_COUNT] {
+  44, // 1  - 397.755
+  45, // 2  - 404.563
+  42, // 3  - 412.732
+  40, // 4  - 427.213
+  41, // 5  - 433.773
+  43, // 6  - 445.531
+  13, // 7  - 452.71
+  30, // 8  - 461.993
+  36, // 9  - 473.628
+  23, // 10 - 505.066
+  25, // 11 - 534.276
+  27, // 12 - 549.252
+  26, // 13 - 560.516
+  24, // 14 - 588.983
+  22, // 15 - 595.543
+  33, // 16 - 607.549
+  32, // 17 - 627.105
+  35, // 18 - 640.101
+  34, // 19 - 658.791
+  37, // 20 - 679.089
+  29, // 21 - 725.133
+  28, // 22 - 745.802
+  31, // 23 - 775.013
+  47, // 24 - 800.634
+  46, // 25 - 820.066
+  49, // 26 - 839.127
+  48, // 27 - 893.463
+  8,  // 28 - 931.461
+  9,  // 29 - 967.107
+  53, // 30 - 1014.64
+  38, // 31 - -- unused --
+  39  // 32 - -- unused --
 };
 
-uint8_t pinSensor = 10;  // Определяем номер вывода Arduino, к которому подключён датчик расхода воды.
-int freq = 11;           // Объявляем динамик
-float varQ = 0.0;        // Объявляем переменную для хранения рассчитанной скорости потока воды (л/с).
-float varV = 0.0;        // Объявляем переменную для хранения рассчитанного объема воды (л).
+uint8_t pinSensor = 10;  // номер вывода датчика расхода воды
+
 
 char SerialData = 0;
 char SerialBuffer[16];
@@ -109,7 +76,10 @@ inline void clear_buffer_and_variables() {
 }
 
 inline void check_water_cooler() {
-  varQ = 0;                                          // Сбрасываем скорость потока воды.
+int freq = 11;                                       // номер вывода динамика
+float varQ = 0.0;                                    // скорость потока воды (л/с)
+float varV = 0.0;                                    // объем воды (л)  
+                                                     // Сбрасываем скорость потока воды.
   uint32_t varL = pulseIn(pinSensor, HIGH, 200000);  // Считываем длительность импульса, но не дольше 0,2 сек.
   if (varL) {                                        // Если длительность импульса считана, то ...
     float varT = 2.0 * (float)varL / 1000000;        // Определяем период следования импульсов в сек.
@@ -143,18 +113,14 @@ inline void set_voltage(uint16_t value, uint16_t address_pin) {
 
 void setup() {
   SPI.begin();
-  for (int i = 22; i <= 50; i++) {
-    pinMode(i, OUTPUT);
+  for (int i = 0; i <PINS_COUNT ; i++) {
+    pinMode(pins[i], OUTPUT);
   }
-  pinMode(50, OUTPUT);
-  pinMode(53, OUTPUT);
-  pinMode(8, OUTPUT);
-  pinMode(9, OUTPUT);
-  pinMode(13, OUTPUT);
 
   Serial.begin(9600);
   while (!Serial) {};
   pinMode(pinSensor, INPUT);
+  Serial.println("setup....");
 }
 
 void loop() {
@@ -174,7 +140,7 @@ start_of_loop:
 
   if (endOfTransmission) {
     switch (SerialBuffer[0]) {
-////////////////////////////////////////////////////////////////// SET ADDRESS //////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////// SET ADDRESS ///////////////////
       case 0x61:  // a --> выбор адреса
         if (isDigit(SerialBuffer[1]))
           address_buf = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
@@ -183,10 +149,10 @@ start_of_loop:
           clear_buffer_and_variables();
           goto start_of_loop;
         }
-        address = get_address(address_buf);
+        address = pins[address_buf];
         clear_buffer();
         goto start_of_loop;
-//////////////////////////////////////////////////////////////////// SET VALUE /////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////// SET VALUE /////////////////////
       case 0x76:  // v --> установка значения
         if (isDigit(SerialBuffer[1]))
           val = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
@@ -199,15 +165,11 @@ start_of_loop:
         }
         clear_buffer_and_variables();
         goto start_of_loop;
-///////////////////////////////////////////////////////////////////// TURN OFF ALL DIODS //////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////// TURN OFF ALL DIODS ////////////
       case 0x66:  // f --> выключение всех светодиодов
-        for (int i = 22; i <= 49; i++) {
-          set_voltage(0, i);
+        for (int i = 0; i <PINS_COUNT; i++) {
+          set_voltage(0, pins[i]);
         }
-        set_voltage(0, 8);
-        set_voltage(0, 9);
-        set_voltage(0, 13);
-        set_voltage(0, 53);
         clear_buffer_and_variables();
         goto start_of_loop;
     }
