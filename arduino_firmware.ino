@@ -70,7 +70,7 @@ inline void check_water_cooler() {
   int freq = 11;                                       // номер вывода динамика
   float varQ = 0.0;                                    // скорость потока воды (л/с)
   float varV = 0.0;                                    // объем воды (л)
- 
+
   uint32_t varL = pulseIn(pinSensor, HIGH, 200000);    // Считываем длительность импульса, но не дольше 0,2 сек.
   if (varL) {                                          // Если длительность импульса считана, то ...
     float varT = 2.0 * (float)varL / 1000000;          // Определяем период следования импульсов в сек.
@@ -125,41 +125,38 @@ start_of_loop:
       SerialBuffer[index++] = data;
     }
   }
-    /////////////////////////////////////////////////////////////////// SET ADDRESS ///////////////////
-      if(SerialBuffer[0]=='a'){ // a --> выбор адреса
-        if (isDigit(SerialBuffer[1]))
-          address_buf = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
-        else {
-          Serial.write("invalid pin command");
-          clear_buffer_and_variables();
-          goto start_of_loop;
-        }
-        address = pins[address_buf];
-        clear_buffer();
-        goto start_of_loop;
-        }else if(SerialBuffer[0]=='v'){
+  /////////////////////////////////////////////////////////////////// SET ADDRESS ///////////////////
+  if (SerialBuffer[0] == 'a') {
+    if (isDigit(SerialBuffer[1]))
+      address_buf = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
+    else {
+      Serial.write("invalid pin command");
+      clear_buffer_and_variables();
+      goto start_of_loop;
+    }
+    address = pins[address_buf];
+    clear_buffer();
+    goto start_of_loop;
+  } else if (SerialBuffer[0] == 'v') {
 /////////////////////////////////////////////////////////////////// SET VALUE /////////////////////
-        // v --> установка значения
-        unsigned long val = 0;
-        if (isDigit(SerialBuffer[1]))
-          val = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
-        else {
-          Serial.write("invalid value command");
-        }
-        if (val != 0 & address != 0) {
-          set_voltage(val, address);
-          Serial.println((String) "set value is completed......."+val);
-        }
-        clear_buffer_and_variables();
-        goto start_of_loop;
-        }else if(SerialBuffer[0]=='f'){
+    unsigned long val = 0;
+    if (isDigit(SerialBuffer[1]))
+      val = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
+    else {
+      Serial.write("invalid value command");
+    }
+    if (val != 0 & address != 0) {
+      set_voltage(val, address);
+      Serial.println((String) "set value is completed......." + val);
+    }
+    clear_buffer_and_variables();
+    goto start_of_loop;
+  } else if (SerialBuffer[0] == 'f') {
 /////////////////////////////////////////////////////////////////// TURN OFF ALL DIODS ////////////
-        // f --> выключение всех светодиодов
-        Serial.println("f ----------- case");
-        for (int i = 0; i < PINS_COUNT; i++) {
-          set_voltage(0, pins[i]);
-        }
-        clear_buffer_and_variables();
-        goto start_of_loop;
-        } 
+    for (int i = 0; i < PINS_COUNT; i++) {
+      set_voltage(0, pins[i]);
+    }
+    clear_buffer_and_variables();
+    goto start_of_loop;
   }
+}
