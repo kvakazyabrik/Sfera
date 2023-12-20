@@ -4,8 +4,8 @@
 #include <ctype.h>
 #include "SPI.h"
 
-const int PINS_COUNT = 32;
-int pins [PINS_COUNT] {
+const int PINS_COUNT = 30;
+const int pins [PINS_COUNT] {
   44, // 1  - 397.755
   45, // 2  - 404.563
   42, // 3  - 412.732
@@ -35,55 +35,32 @@ int pins [PINS_COUNT] {
   48, // 27 - 893.463
   8,  // 28 - 931.461
   9,  // 29 - 967.107
-  53, // 30 - 1014.64
-  38, // 31 - -- unused --
-  39  // 32 - -- unused --
+  53  // 30 - 1014.64
+  //38,  31 -- unused --
+  //39   32 -- unused --
 };
-uint8_t pinSensor = 10;  // номер вывода датчика расхода воды
+const uint8_t pin_water_sensor = 10;  // номер вывода датчика расхода воды
+const int pin_speaker = 11;
+const int BUFFER_SIZE = 16;
+char buffer[BUFFER_SIZE];
+bool is_water_cooler_warning = true;
 
-char SerialBuffer[16];
-char* ptr = nullptr;
-int address = 0;
-unsigned long address_buf = 0;
-
-inline void clear_buffer();
-inline void clear_address_and_value();
-inline void clear_buffer_and_variables();
-inline void check_water_cooler();
-inline void set_voltage(uint16_t value, uint16_t address_pin);
-
-inline void clear_buffer() {
-  memset(SerialBuffer, 0, sizeof(SerialBuffer));
-  address_buf = 0;
-}
-
-inline void clear_address_and_value() {
-  address = 0;
-}
-
-inline void clear_buffer_and_variables() {
-  clear_buffer();
-  clear_address_and_value();
-}
-
-inline void check_water_cooler() {
-  int freq = 11;                                       // номер вывода динамика
-  float varQ = 0.0;                                    // скорость потока воды (л/с)
-  float varV = 0.0;                                    // объем воды (л)
-
-  uint32_t varL = pulseIn(pinSensor, HIGH, 200000);    // Считываем длительность импульса, но не дольше 0,2 сек.
-  if (varL) {                                          // Если длительность импульса считана, то ...
-    float varT = 2.0 * (float)varL / 1000000;          // Определяем период следования импульсов в сек.
-    float varF = 1 / varT;                             // Определяем частоту следования импульсов в Гц.
-    varQ = varF / 450.0f;                              // Определяем скорость потока воды л/с.
-    varV += varQ * varT;                               // Определяем объем воды л.
+inline void check_water_cooler() {                            // номер вывода динамика
+  float varQ = 0.0;                                           // скорость потока воды (л/с)
+  float varV = 0.0;                                           // объем воды (л)
+  uint32_t varL = pulseIn(pin_water_sensor, HIGH, 200000);    // Считываем длительность импульса, но не дольше 0,2 сек.
+  if (varL) {                                                 // Если длительность импульса считана, то ...
+    float varT = 2.0 * (float)varL / 1000000;                 // Определяем период следования импульсов в сек.
+    float varF = 1 / varT;                                    // Определяем частоту следования импульсов в Гц.
+    varQ = varF / 450.0f;                                     // Определяем скорость потока воды л/с.
+    varV += varQ * varT;                                      // Определяем объем воды л.
   }
   //Serial.println((String) "Объем " + varV + "л, скорость " + (varQ * 60.0f) + "л/м.");
   if (varQ == 0) {
-    tone(freq, 1);
-    asm volatile("jmp 0x00"); // soft reset
+    tone(pin_speaker, 3000, 500);
+    delay(1000);
   } else {
-    noTone(freq);
+    noTone(pin_speaker);
   }
 }
 
@@ -106,57 +83,47 @@ void setup() {
   }
   Serial.begin(9600);
   while (!Serial) {};
-  pinMode(pinSensor, INPUT);
-  clear_buffer_and_variables();
+  pinMode(pin_water_sensor, INPUT);
 }
 
 void loop() {
-start_of_loop:
-  check_water_cooler();
+  memset(buffer, 0, BUFFER_SIZE);
+  if (is_water_cooler_warning) {
+    check_water_cooler();
+  }
   int index = 0;
-  char data;
+  int index_separator = 0;
   while (Serial.available()) {
-    data = Serial.read();
-    Serial.println(data);
+    char  data = Serial.read();
     if (data == '\n') {
-      SerialBuffer[index++] = '\0';
+      buffer[index++] = '\0';
       break;
     } else {
-      SerialBuffer[index++] = data;
+      if (data == '_')
+        index_separator = index;
+      buffer[index++] = data;
     }
   }
-  /////////////////////////////////////////////////////////////////// SET ADDRESS ///////////////////
-  if (SerialBuffer[0] == 'a') {
-    if (isDigit(SerialBuffer[1]))
-      address_buf = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
-    else {
+  if (buffer[0] == 'a' && index_separator > 0) {    ////////// SET VOLTAGE FOR SPECIFIC ADDRESS ///////////////////
+    char* ptr = nullptr;
+    unsigned long address = strtoul((const char*)buffer + 1, &ptr, 10);
+    unsigned long value = strtoul(buffer + index_separator + 1, &ptr, 10);
+    if (value > 0 && address > 0 && address < PINS_COUNT) {
+      set_voltage(value, pins[address - 1]);
+      Serial.println((String) "set value is completed......." + value);
+    } else {
       Serial.write("invalid pin command");
-      clear_buffer_and_variables();
-      goto start_of_loop;
     }
-    address = pins[address_buf];
-    clear_buffer();
-    goto start_of_loop;
-  } else if (SerialBuffer[0] == 'v') {
-/////////////////////////////////////////////////////////////////// SET VALUE /////////////////////
-    unsigned long val = 0;
-    if (isDigit(SerialBuffer[1]))
-      val = strtoul((const char*)SerialBuffer + 1, &ptr, 10);
-    else {
-      Serial.write("invalid value command");
-    }
-    if (val != 0 & address != 0) {
-      set_voltage(val, address);
-      Serial.println((String) "set value is completed......." + val);
-    }
-    clear_buffer_and_variables();
-    goto start_of_loop;
-  } else if (SerialBuffer[0] == 'f') {
-/////////////////////////////////////////////////////////////////// TURN OFF ALL DIODS ////////////
+  } else if (buffer[0] == 'f') {                      ////////// TURN OFF ALL DIODS ////////////
     for (int i = 0; i < PINS_COUNT; i++) {
       set_voltage(0, pins[i]);
     }
-    clear_buffer_and_variables();
-    goto start_of_loop;
+  } else if (buffer[0] == 'm') {                      ////////// MUTE SOUND WARNING ////////////
+    is_water_cooler_warning = false;
+    noTone(pin_speaker);
+  } else if (buffer[0] == 'u') {                      ////////// UNMUTE SOUND WARNING //////////
+    is_water_cooler_warning = true;
+  } else if (buffer[0] == 'r') {                      ////////// SOFT RESET CONTROLLER //////////
+    asm volatile("jmp 0x00");
   }
 }
