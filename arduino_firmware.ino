@@ -40,12 +40,12 @@ const int pins [PINS_COUNT] {
   //39   32 -- unused --
 };
 const uint8_t pin_water_sensor = 10;  // номер вывода датчика расхода воды
-const int pin_speaker = 11;
+const int pin_speaker = 11;           // номер вывода динамика
 const int BUFFER_SIZE = 16;
 char buffer[BUFFER_SIZE];
 bool is_water_cooler_warning = true;
 
-inline void check_water_cooler() {                            // номер вывода динамика
+inline void check_water_cooler() {
   float varQ = 0.0;                                           // скорость потока воды (л/с)
   float varV = 0.0;                                           // объем воды (л)
   uint32_t varL = pulseIn(pin_water_sensor, HIGH, 200000);    // Считываем длительность импульса, но не дольше 0,2 сек.
