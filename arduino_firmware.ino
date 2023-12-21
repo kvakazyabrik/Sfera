@@ -104,11 +104,11 @@ void loop() {
       buffer[index++] = data;
     }
   }
-  if (buffer[0] == 'a' && index_separator > 0) {    ////////// SET VOLTAGE FOR SPECIFIC ADDRESS ///////////////////
+  if (buffer[0] == 'a' && index_separator > 0) {      ////////// SET VOLTAGE FOR SPECIFIC ADDRESS ////////////
     char* ptr = nullptr;
     unsigned long address = strtoul((const char*)buffer + 1, &ptr, 10);
     unsigned long value = strtoul(buffer + index_separator + 1, &ptr, 10);
-    if (value > 0 && address > 0 && address < PINS_COUNT) {
+    if (value >= 0 && address > 0 && address < PINS_COUNT) {
       set_voltage(value, pins[address - 1]);
       Serial.println((String) "set value is completed......." + value);
     } else {

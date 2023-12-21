@@ -7,16 +7,24 @@ The arduino can change the current for any diod in specific range.
 Commands are sended by serial port.
 
 # Commands:
-This command choose the diod with specific number
+set voltage (relative measurements) value for the diod with specific number
+a<address>_<value>
 ```javascript
-a1
+a8_950
 ```
-This command set current in relative values for the diod (chosed with a command)
-```javascript
-v1
-```
-
-This command set the curret for all diods to zero
+set the curret for all diods to zero
 ```javascript
 f
+```
+mute warning sound for unworking water cooler system
+```javascript
+m
+```
+unmute warning sound for unworking water cooler system
+```javascript
+u
+```
+soft reset for arduino
+```javascript
+r
 ```
