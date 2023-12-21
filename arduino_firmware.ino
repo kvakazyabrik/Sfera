@@ -80,6 +80,7 @@ void setup() {
   SPI.begin();
   for (int i = 0; i < PINS_COUNT ; i++) {
     pinMode(pins[i], OUTPUT);
+    digitalWrite(pins[i], HIGH);
   }
   Serial.begin(9600);
   while (!Serial) {};
