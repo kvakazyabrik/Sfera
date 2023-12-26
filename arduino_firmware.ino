@@ -56,6 +56,8 @@ inline void check_water_cooler() {
     varV += varQ * varT;                                      // Определяем объем воды л.
   }
   //Serial.println((String) "Объем " + varV + "л, скорость " + (varQ * 60.0f) + "л/м.");
+  if (!is_water_cooler_warning)
+    return;
   if (varQ == 0) {
     tone(pin_speaker, 3000, 500);
     delay(1000);
@@ -89,9 +91,7 @@ void setup() {
 
 void loop() {
   memset(buffer, 0, BUFFER_SIZE);
-  if (is_water_cooler_warning) {
-    check_water_cooler();
-  }
+  check_water_cooler();
   int index = 0;
   int index_separator = 0;
   while (Serial.available()) {
@@ -100,15 +100,17 @@ void loop() {
       buffer[index++] = '\0';
       break;
     } else {
-      if (data == '_')
+      if (data == '_') {
         index_separator = index;
+        data = '\0';
+      }
       buffer[index++] = data;
     }
   }
   if (buffer[0] == 'a' && index_separator > 0) {      ////////// SET VOLTAGE FOR SPECIFIC ADDRESS ////////////
     char* ptr = nullptr;
     unsigned long address = strtoul((const char*)buffer + 1, &ptr, 10);
-    unsigned long value = strtoul(buffer + index_separator + 1, &ptr, 10);
+    unsigned long value = strtoul((const char*)buffer + index_separator + 1, &ptr, 10);
     if (value >= 0 && address > 0 && address < PINS_COUNT) {
       set_voltage(value, pins[address - 1]);
       Serial.println((String) "set value is completed......." + value);
