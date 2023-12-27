@@ -111,7 +111,7 @@ void loop() {
     char* ptr = nullptr;
     unsigned long address = strtoul((const char*)buffer + 1, &ptr, 10);
     unsigned long value = strtoul((const char*)buffer + index_separator + 1, &ptr, 10);
-    if (value >= 0 && address > 0 && address < PINS_COUNT) {
+    if (value >= 0 && address > 0 && address <= PINS_COUNT) {
       set_voltage(value, pins[address - 1]);
       Serial.println((String) "set value is completed......." + value);
     } else {
