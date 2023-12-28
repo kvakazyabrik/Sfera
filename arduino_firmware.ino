@@ -71,9 +71,7 @@ inline void set_voltage(uint16_t value, uint16_t address_pin) {
   digitalWrite(address_pin, LOW);  // поднятие cs в 1 с нужным аддресом
   SPI.beginTransaction(SPISettings(16000000, MSBFIRST, SPI_MODE0));
   SPI.transfer((uint8_t)(data >> 8));
-  Serial.println((uint8_t)(data >> 8), HEX);
   SPI.transfer((uint8_t)(data & 0xFF));
-  Serial.println((uint8_t)(data & 0xFF), HEX);
   SPI.endTransaction();
   digitalWrite(address_pin, HIGH);
 }
@@ -94,8 +92,10 @@ void loop() {
   check_water_cooler();
   int index = 0;
   int index_separator = 0;
+  char  data = '*';
+  read_data:
   while (Serial.available()) {
-    char  data = Serial.read();
+    data = Serial.read();
     if (data == '\n') {
       buffer[index++] = '\0';
       break;
@@ -107,13 +107,17 @@ void loop() {
       buffer[index++] = data;
     }
   }
+  if(data!='\n')goto read_data;
+
   if (buffer[0] == 'a' && index_separator > 0) {      ////////// SET VOLTAGE FOR SPECIFIC ADDRESS ////////////
     char* ptr = nullptr;
     unsigned long address = strtoul((const char*)buffer + 1, &ptr, 10);
     unsigned long value = strtoul((const char*)buffer + index_separator + 1, &ptr, 10);
+    Serial.println((String)address);
+    Serial.println((String)value);    
     if (value >= 0 && address > 0 && address <= PINS_COUNT) {
       set_voltage(value, pins[address - 1]);
-      Serial.println((String) "set value is completed......." + value);
+     //Serial.println((String) "set value is completed......." + value);
     } else {
       Serial.write("invalid pin command");
     }
