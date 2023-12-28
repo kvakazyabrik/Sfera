@@ -119,7 +119,7 @@ read_data:
     unsigned long value = strtoul((const char*)buffer + index_separator + 1, &ptr, 10);
     if (value >= 0 && address > 0 && address <= PINS_COUNT) {
       set_voltage(value, pins[address - 1]);
-      Serial.println((String) "c" + address + "_" + value);
+      Serial.println((String) "a" + address + "_" + value);
     } else {
       Serial.println("e" + 1);
     }
