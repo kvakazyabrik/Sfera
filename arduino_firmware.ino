@@ -44,20 +44,23 @@ const int pin_speaker = 11;           // номер вывода динамик�
 const int BUFFER_SIZE = 16;
 char buffer[BUFFER_SIZE];
 bool is_water_cooler_warning = true;
+bool is_water_notification = false;
 
 inline void check_water_cooler() {
   float varQ = 0.0;                                           // скорость потока воды (л/с)
-  float varV = 0.0;                                           // объем воды (л)
   uint32_t varL = pulseIn(pin_water_sensor, HIGH, 200000);    // Считываем длительность импульса, но не дольше 0,2 сек.
   if (varL) {                                                 // Если длительность импульса считана, то ...
     float varT = 2.0 * (float)varL / 1000000;                 // Определяем период следования импульсов в сек.
     float varF = 1 / varT;                                    // Определяем частоту следования импульсов в Гц.
     varQ = varF / 450.0f;                                     // Определяем скорость потока воды л/с.
-    varV += varQ * varT;                                      // Определяем объем воды л.
   }
-  //Serial.println((String) "Объем " + varV + "л, скорость " + (varQ * 60.0f) + "л/м.");
-  if (!is_water_cooler_warning)
+  if (is_water_notification) {
+    Serial.println((String)"w" + varQ);
+    is_water_notification = false;
+  }
+  if (!is_water_cooler_warning) {
     return;
+  }
   if (varQ == 0) {
     tone(pin_speaker, 3000, 500);
     delay(1000);
@@ -93,7 +96,7 @@ void loop() {
   int index = 0;
   int index_separator = 0;
   char  data = '*';
-  read_data:
+read_data:
   while (Serial.available()) {
     data = Serial.read();
     if (data == '\n') {
@@ -107,19 +110,18 @@ void loop() {
       buffer[index++] = data;
     }
   }
-  if(data!='\n')goto read_data;
+  if (data != '\n')
+    goto read_data;
 
   if (buffer[0] == 'a' && index_separator > 0) {      ////////// SET VOLTAGE FOR SPECIFIC ADDRESS ////////////
     char* ptr = nullptr;
     unsigned long address = strtoul((const char*)buffer + 1, &ptr, 10);
     unsigned long value = strtoul((const char*)buffer + index_separator + 1, &ptr, 10);
-    Serial.println((String)address);
-    Serial.println((String)value);    
     if (value >= 0 && address > 0 && address <= PINS_COUNT) {
       set_voltage(value, pins[address - 1]);
-     //Serial.println((String) "set value is completed......." + value);
+      Serial.println((String) "c" + address + "_" + value);
     } else {
-      Serial.write("invalid pin command");
+      Serial.println("e" + 1);
     }
   } else if (buffer[0] == 'f') {                      ////////// TURN OFF ALL DIODS ////////////
     for (int i = 0; i < PINS_COUNT; i++) {
@@ -132,5 +134,7 @@ void loop() {
     is_water_cooler_warning = true;
   } else if (buffer[0] == 'r') {                      ////////// SOFT RESET CONTROLLER //////////
     asm volatile("jmp 0x00");
+  } else if (buffer[0] == 'w') {
+    is_water_notification = true;
   }
 }
