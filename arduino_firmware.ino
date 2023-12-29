@@ -92,11 +92,11 @@ void setup() {
 
 void loop() {
   memset(buffer, 0, BUFFER_SIZE);
-  check_water_cooler();
   int index = 0;
   int index_separator = 0;
   char  data = '*';
 read_data:
+  check_water_cooler();
   while (Serial.available()) {
     data = Serial.read();
     if (data == '\n') {
@@ -121,7 +121,7 @@ read_data:
       set_voltage(value, pins[address - 1]);
       Serial.println((String) "a" + address + "_" + value);
     } else {
-      Serial.println("e" + 1);
+      Serial.println((String) "e" + 1);
     }
   } else if (buffer[0] == 'f') {                      ////////// TURN OFF ALL DIODS ////////////
     for (int i = 0; i < PINS_COUNT; i++) {
