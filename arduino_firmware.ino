@@ -134,7 +134,7 @@ read_data:
     is_water_cooler_warning = true;
   } else if (buffer[0] == 'r') {                      ////////// SOFT RESET CONTROLLER //////////
     asm volatile("jmp 0x00");
-  } else if (buffer[0] == 'w') {
+  } else if (buffer[0] == 'w') {                      ////////// GET WATER CONSUMPTION //////////
     is_water_notification = true;
   }
 }
