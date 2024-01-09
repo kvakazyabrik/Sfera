@@ -61,7 +61,7 @@ inline void check_water_cooler() {
   if (!is_water_cooler_warning) {
     return;
   }
-  if (varQ == 0) {
+  if (varQ < 0.07) {
     tone(pin_speaker, 3000, 500);
     delay(1000);
   } else {
